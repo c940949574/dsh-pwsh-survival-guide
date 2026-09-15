@@ -18,6 +18,19 @@
 | `fatal: ... Recv failure: Connection was reset` | git 不读系统代理 |
 | 统计字符串出现次数得到几万 | `String.Split("abc")` 是按**字符**拆分的 |
 
+## 适用环境
+
+清单里有些结论是**环境特定**的，换机器时先自查一下：
+
+| 清单里提到的 | 怎么确认你自己的 |
+| --- | --- |
+| 代理在 `127.0.0.1:6789`（clash） | `Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' \| Select-Object ProxyEnable, ProxyServer` |
+| 没有 `gh` / `rg` | `Get-Command gh, rg -ErrorAction SilentlyContinue` |
+| PowerShell 版本行为不一致 | 看 `$PSVersionTable.PSVersion`，再按第 10 条的方式试 |
+| Node v24、自带 zstd | `node -v` |
+
+而**引号、BOM、管道截断、退出码**这几类问题与具体机器无关，放哪都适用。
+
 ## 目录
 
 - **[SKILL.md](SKILL.md)** —— 清单本体，11 个主题，每条都给出「错误写法 → 正确写法」
@@ -38,7 +51,7 @@
 
 ## 当作 DSH skill 使用
 
-[Deepseek Harness](https://github.com/) 的技能格式是 `<skills-dir>/<kebab-name>/SKILL.md`。直接把本仓库克隆进去即可：
+DSH（Deepseek Harness）的技能格式是 `<skills-dir>/<kebab-name>/SKILL.md`。直接克隆进去即可：
 
 ```powershell
 git clone https://github.com/c940949574/dsh-pwsh-survival-guide "$env:USERPROFILE\.dsh\skills\dsh-pwsh-survival-guide"

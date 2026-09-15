@@ -4,9 +4,13 @@ description: 在 Windows 上用 PowerShell 跑命令、写临时脚本、调用 
 whenToUse: 准备执行 pwsh 命令、写临时脚本（.mjs/.ps1）、下载或解析 JSON、调 GitHub API、用 git 推送、处理中文文本或文件编码时，先看这份清单再动手。
 ---
 
-# PowerShell 避坑指南（本机 Windows 环境）
+# PowerShell 避坑指南（Windows）
 
 这份清单来自实际踩坑记录。**动手前扫一眼，能省掉大量试错。**
+
+> **环境前提**：结论来自一台具体的 Windows 开发机。「代理端口」「已装工具」「Node 版本」
+> 这几项是那台机器的现状，换环境请先用第 9、10 条的方法自查自己这边是什么情况；
+> 而**引号、BOM、管道截断、退出码**这几类问题与具体机器无关，放哪都适用。
 
 ## 三条铁律
 
@@ -109,7 +113,16 @@ $t.Split("keyword").Length - 1
 
 ## 8. 代理
 
-本机代理是 clash（`127.0.0.1:6789`，系统代理已开），但 **git 不读系统代理**：
+**系统代理开着，git 却不读它** —— 在 Windows 上非常常见，症状是直连被 reset。
+
+先查出系统代理（本机示例：clash 监听 `127.0.0.1:6789`）：
+
+```powershell
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' |
+    Select-Object ProxyEnable, ProxyServer
+```
+
+查到端口后：
 
 ```powershell
 # ✗ 直连会被 reset：fatal: unable to access ... Recv failure: Connection was reset
@@ -126,13 +139,14 @@ git -C <repo> config http.proxy http://127.0.0.1:6789
 
 ## 9. 命令是否存在，先探测
 
-本机**没有** `gh`、`rg`（ripgrep）。别直接调用：
+有些顺手就用的 CLI 其实没装（本机就没有 `gh`、`rg`）。别直接调用：
 
 ```powershell
 if (Get-Command gh -ErrorAction SilentlyContinue) { ... } else { "gh not installed" }
 ```
 
-搜索用内置 `Select-String`，或直接用宿主提供的 grep 工具（更快且能处理大文件）。
+搜索优先用宿主提供的 grep 工具（比 `Select-String` 快，且能处理大文件），
+没有工具时再退回 `Select-String`。
 
 ## 10. 版本行为差异
 
