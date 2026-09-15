@@ -33,7 +33,7 @@
 
 ## 目录
 
-- **[SKILL.md](SKILL.md)** —— 清单本体，11 个主题，每条都给出「错误写法 → 正确写法」
+- **[SKILL.md](SKILL.md)** —— 清单本体，17 个主题，每条都给出「错误写法 → 正确写法」
 
 主题列表：
 
@@ -48,6 +48,14 @@
 9. 命令是否存在，先探测
 10. 版本行为差异
 11. 其他本机要点（目录联接、zstd 多帧、含中文的 HTTP body 等）
+12. 路径：`-Path` 会把它当通配符
+13. 退出码有两套系统，别混用
+14. 紧凑参数传给原生程序可能被拆开
+15. Unix 工具不存在，或用的是「同名不同物」
+16. `&&` / `||` 在 PowerShell 5.1 里是语法错误
+17. 执行策略只对当次生效
+
+SKILL.md 开头还有一节 **「什么时候不用翻这份清单」** —— 明确列出不该触发本技能的场景，避免给日常命令增加"行为税"。
 
 ## 当作 DSH skill 使用
 
@@ -64,6 +72,16 @@ git clone https://github.com/c940949574/dsh-pwsh-survival-guide "$env:DSH_HOME\s
 ```
 
 装好后，涉及 PowerShell 的任务会自动加载这份清单；也可以手动让 agent「加载 dsh-pwsh-survival-guide 技能」。
+
+## 同类项目
+
+这个方向已经有不少积累，各有侧重，值得一并参考：
+
+- [GuanKr/pwsh-pitfalls](https://github.com/GuanKr/pwsh-pitfalls) —— 7 个 trap + bash→pwsh 翻译表，定位是「命令失败之后的修复」
+- [chaggle/dsh-powershell-check](https://github.com/chaggle/dsh-powershell-check) —— DSH 原生插件，挂在 `tools/pre-execute` 拦截点上**执行前就拦下**有问题的 pwsh 调用，比 skill 更强硬
+- [devops-collective-inc/big-book-of-powershell-gotchas](https://github.com/devops-collective-inc/big-book-of-powershell-gotchas) —— 面向人类的经典陷阱合集
+
+本仓库的差异：结论直接来自真实的 DSH agent 会话，侧重**执行环境层面**的坑 —— `ConvertFrom-Json` 误报、`Select-Object -First` 造成的假失败、每次调用都是独立进程、宿主代理配置 —— 而不只是命令语法本身。
 
 ## 给非 DSH 用户
 

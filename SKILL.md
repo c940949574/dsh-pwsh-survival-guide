@@ -18,6 +18,14 @@ whenToUse: 准备执行 pwsh 命令、写临时脚本（.mjs/.ps1）、下载或
 2. **校验 JSON / 解析文本用 node，不要用 PowerShell**
 3. **写文件用显式无 BOM 的 UTF-8**
 
+## 什么时候不用翻这份清单
+
+清单本身也有成本 —— 每条命令都查一遍，反而拖慢工作。以下情况直接动手：
+
+- 刚刚已经跑成功、只是换了参数的同类命令
+- 纯只读、无引号嵌套、无管道的简单命令（`Get-ChildItem` / `Test-Path` / `node -v`）
+- 本文档里出现过的**正确**写法 → 照抄，不用重新推演
+
 ---
 
 ## 1. 引号：`node -e "..."` 是陷阱
@@ -166,6 +174,77 @@ if (Get-Command gh -ErrorAction SilentlyContinue) { ... } else { "gh not install
 - 发含中文的 HTTP body：`[System.Text.Encoding]::UTF8.GetBytes($json)` 传 `-Body`，
   `ContentType` 写 `application/json; charset=utf-8`
 - 后台任务用工具自带的 `run_in_background`，不要用 `Start-Job` / `Start-Process`
+
+---
+
+## 12. 路径：`-Path` 会把它当通配符
+
+```powershell
+# ✗ 路径里的 [ ] 被当成通配符 → 报“找不到路径”
+Get-Content "C:\logs\app[1].log"
+Get-ChildItem "C:\logs\v[2]"
+
+# ✓ 按字面路径处理
+Get-Content -LiteralPath "C:\logs\app[1].log"
+```
+
+规则：路径来自变量或用户输入、或含 `[ ] * ?` 时，一律用 `-LiteralPath`。
+
+## 13. 退出码有两套系统，别混用
+
+```powershell
+git push
+$?                # 布尔：上一条命令成功没有
+$LASTEXITCODE     # 数字：只有原生程序（.exe / .cmd）才会更新它
+```
+
+坑在于 **PowerShell 自己的 cmdlet 不更新 `$LASTEXITCODE`**。
+`Test-Path x; if ($LASTEXITCODE)` 判断的是**更早那一条 exe** 的退出码，跟 `Test-Path` 毫无关系。
+
+- 判断 cmdlet 成败 → `$?` 或 `-ErrorAction`
+- 判断 exe（git / node / npm）→ `$LASTEXITCODE`
+- 宿主显示的 `[exit code: N]` 取的就是 `$LASTEXITCODE`，所以会被管道截断污染（见第 5 条）
+
+## 14. 紧凑参数传给原生程序可能被拆开
+
+```powershell
+# ✗ 传给 .exe / .cmd 的紧凑参数可能被重新解析
+some.exe -Dkey=value
+# ✓ 用引号把整个参数锁住
+some.exe "-Dkey=value"
+```
+
+遇到"参数明明写对了却报错"时，先试加引号。
+（这条来自 [GuanKr/pwsh-pitfalls](https://github.com/GuanKr/pwsh-pitfalls) 的实测记录，本机未复现过。）
+
+## 15. Unix 工具不存在，或用的是「同名不同物」
+
+```powershell
+find . -name "*.log"     # ✗ 这是 Windows 自带的 find.exe（搜字符串用），不是 GNU find
+grep -r foo .            # ✗ 默认没有
+sed / awk / head / tail  # ✗ 默认没有
+```
+
+替代：`Get-ChildItem -Recurse`、`Select-String`，或直接用宿主提供的 glob / grep 工具（见第 9 条）。
+**别把 bash 惯用法直接搬过来** —— 报错信息往往看起来很莫名其妙。
+
+## 16. `&&` / `||` 在 PowerShell 5.1 里是语法错误
+
+```powershell
+cmd1 && cmd2             # ✗ 5.1 直接报错（7.0+ 才支持）
+cmd1; if ($?) { cmd2 }   # ✓ 跨版本都能用
+```
+
+写脚本时一律用 `;` + `if ($?)`，别赌运行环境是 7。
+
+## 17. 执行策略只对当次生效
+
+```powershell
+powershell -ExecutionPolicy Bypass -File script.ps1   # 只影响这一次调用
+Set-ExecutionPolicy -Scope Process Bypass             # 只影响当前会话
+```
+
+别去改 `LocalMachine` 作用域 —— 那是对整台机器的改动，属于越权操作。
 
 ---
 
